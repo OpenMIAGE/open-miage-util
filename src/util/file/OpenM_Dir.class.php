@@ -55,5 +55,6 @@ class OpenM_Dir {
         $dir->close();
         return true;
     }
+    
 }
 ?>

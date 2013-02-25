@@ -1,5 +1,7 @@
 <?php
 
+Import::php("util.wrapper.RegExp");
+
 /**
  * used to zip file or directory recursivly
  * @package OpenM 

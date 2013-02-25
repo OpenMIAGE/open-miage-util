@@ -1,6 +1,6 @@
 OpenMIAGE util
 
-OpenMIAGE util est un package commun aux API et aux IHM d'OpenMIAGE.
+OpenMIAGE util est un package de tools communs aux API et aux IHM d'OpenMIAGE.
 
 Vous pouvez suivre l'avancé de nos développements sur www.open-miage.org
 

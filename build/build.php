@@ -8,7 +8,7 @@ if (!is_dir($temp))
     mkdir($temp);
 $version = file_get_contents("build.version");
 $count = intval(file_get_contents("build.count"));
-$dir = "$temp/OpenM/util/$version" . "_$count";
+$dir = "$temp/lib/OpenM/util/$version" . "_$count";
 if (is_dir($temp))
     OpenM_Dir::rm($temp);
 mkdir($dir, 0777, true);

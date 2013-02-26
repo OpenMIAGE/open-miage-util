@@ -10,8 +10,6 @@ Vous pouvez suivre l'avancé de nos développements sur [www.open-miage.org](htt
 Prerequis
 =====================
  * PHP 5.2.x min
- * CURL extension.
- * GMP extension (or Bcmath, but GMP is mutch faster)
 
 Prerequis
 =====================

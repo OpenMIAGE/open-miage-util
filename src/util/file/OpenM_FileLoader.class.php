@@ -4,7 +4,7 @@ Import::php("util.wrapper.RegExp");
 Import::php("util.OpenM_Log");
 
 /**
- * 
+ * used to export from HTTP request a specific file from class path out of http scope
  * @package OpenM 
  * @subpackage util/file
  * @license http://www.apache.org/licenses/LICENSE-2.0 Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,13 +25,17 @@ class OpenM_FileLoader {
 
     const FILE_URL_PARAMETER = "f";
 
+    /**
+     * used to display a file from class path to HTTP response
+     * @param String $file is path to file in class path
+     */
     public static function display($file) {
         if (is_file($file))
             die("Forbidden display");
 
         $path = Import::getAbsolutePath($file);
         if ($path == null)
-            throw new Exception("file not found");
+            die("file not found");
         else {
             if (!is_file($path))
                 die("Forbidden display");
@@ -80,6 +84,10 @@ class OpenM_FileLoader {
         @readfile($path);
     }
 
+    /**
+     * is FileLoader server handler
+     * @uses self::display
+     */
     public static function handle() {
         if (isset($_GET[self::FILE_URL_PARAMETER])) {
             try {

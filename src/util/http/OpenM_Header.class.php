@@ -36,6 +36,12 @@ class OpenM_Header {
         exit(0);
     }
 
+    /**
+     * add a header in HTTP response
+     * @param String $message to push on HTTP response
+     * @param int $code to push on HTTP response
+     * @throws InvalidArgumentException
+     */
     public static function add($message, $code) {
         if (!String::isStringOrNull($message))
             throw new InvalidArgumentException("message must be a string");
@@ -45,12 +51,22 @@ class OpenM_Header {
         header($message, true, $code);
     }
 
+    /**
+     * add a HTTP header in response with code and message given
+     * @param int $code to push on HTTP response
+     * @param String $message to push on HTTP response
+     * @uses self::add
+     * @throws InvalidArgumentException
+     */
     public static function error($code, $message = null) {
         self::add($_SERVER["SERVER_PROTOCOL"] . " $code $message", $code);
         header("Connection: close");
         exit(0);
     }
 
+    /**
+     * add a Status 200 OK header
+     */
     public static function ok() {
         self::add($_SERVER["SERVER_PROTOCOL"] . " 200 OK", 200);
     }

@@ -18,7 +18,7 @@ Import::php("util.OpenM_Log");
  * See the License for the specific language governing permissions and
  * limitations under the License.
  * @link http://www.open-miage.org
- * @author Gaël Saunier
+ * @author Gael Saunier
  */
 class OpenM_CookiesController {
 

@@ -8,11 +8,14 @@ if (!is_dir($temp))
     mkdir($temp);
 $version = file_get_contents("build.version");
 $count = intval(file_get_contents("build.count"));
-$dir = "$temp/lib/OpenM/util/$version" . "_$count";
+$dir = "$temp/lib/OpenM/util/$version";
 if (is_dir($temp))
     OpenM_Dir::rm($temp);
 mkdir($dir, 0777, true);
 OpenM_Dir::cp("../src", $dir);
+copy("../COPYING", $temp."/COPYING");
+copy("../README.md", $temp."/README.md");
+OpenM_Dir::cp("../CHANGES", $temp."/CHANGES");
 $target_file_name = "OpenM.util_$version" . "_$count" . "_src.zip";
 OpenM_Zip::zip($temp, $target_file_name);
 OpenM_Dir::rm($temp);

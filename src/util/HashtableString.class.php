@@ -2,6 +2,7 @@
 
 Import::php("util.wrapper.String");
 Import::php("util.Enum");
+Import::php("util.ArrayList");
 
 /**
  * Class wrapper of array with key/value.

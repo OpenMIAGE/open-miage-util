@@ -1,6 +1,7 @@
 <?php
 
 Import::php("util.HashtableString");
+Import::php("util.http.OpenM_URL");
 
 /**
  * Used to read/write a property file
@@ -49,10 +50,14 @@ class Properties {
         if ($propertyFilePath instanceof String)
             $propertyFilePath .= "";
 
-        if (!is_file($propertyFilePath))
-            throw new InvalidArgumentException("argument must be a valid directory path ($propertyFilePath)");
 
-        $this->filePath = realpath($propertyFilePath);
+        if (!OpenM_URL::isValid($propertyFilePath)) {
+            if (!is_file($propertyFilePath))
+                throw new InvalidArgumentException("argument must be a valid directory path ($propertyFilePath)");
+            $this->filePath = realpath($propertyFilePath);
+        }
+        else
+            $this->filePath = $propertyFilePath;
 
         if (self::$cacheProperties == null)
             self::$cacheProperties = new HashtableString();
@@ -199,8 +204,8 @@ class Properties {
 
     /**
      * Retourne un objet Properties charger à partir du chemin $propertyilePath
-     * @param type $propertyFilePath
-     * @return \Properties
+     * @param String $propertyFilePath
+     * @return Properties
      * @throws InvalidArgumentException
      */
     public static function fromFile($propertyFilePath) {
@@ -212,14 +217,17 @@ class Properties {
         if (self::$instance == null)
             self::$instance = new HashtableString();
 
-        $realPath = realpath($propertyFilePath);
-        if (!is_file($realPath)) {
-            $realPath = Import::getAbsolutePath($propertyFilePath);
-            if ($realPath == null)
-                throw new InvalidArgumentException("realPath must be the valid path of a relative/absolute file or of a file in class path");
+        if (OpenM_URL::isValid($propertyFilePath))
+            $realPath = $propertyFilePath;
+        else {
+            $realPath = realpath($propertyFilePath);
+            if (!is_file($realPath)) {
+                $realPath = Import::getAbsolutePath($propertyFilePath);
+                if ($realPath == null)
+                    throw new InvalidArgumentException("realPath must be the valid path of a relative/absolute file or of a file in class path");
+            }
         }
 
-        //Permet de ne pas charger 2 fois le mm fichier
         if (self::$instance->containskey($realPath))
             return self::$instance->get($realPath);
         else {

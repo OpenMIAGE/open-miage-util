@@ -19,7 +19,7 @@
  * @author Gael Saunier
  */
 class OpenM_Dir {
-    
+
     /**
      * used to remove a directory recursively
      * @param String $dir is directory path to remove
@@ -41,7 +41,7 @@ class OpenM_Dir {
             @rmdir($dir);
         }
     }
-    
+
     /**
      * used to copy a directory recursively
      * @param String $src is path of directory source
@@ -52,11 +52,11 @@ class OpenM_Dir {
         if (is_file($src)) {
             return copy($src, $target);
         }
- 
+
         if (!is_dir($target)) {
-            mkdir($target,0777,true);
-        }           
-        
+            mkdir($target, 0777, true);
+        }
+
         $dir = dir($src);
         while (false !== $entry = $dir->read()) {
             if ($entry == '.' || $entry == '..') {
@@ -67,6 +67,11 @@ class OpenM_Dir {
         $dir->close();
         return true;
     }
-    
+
+    public static function mk($pathname, $mode = 0777, $recursive = true) {
+        mkdir($pathname, $mode, $recursive);
+    }
+
 }
+
 ?>

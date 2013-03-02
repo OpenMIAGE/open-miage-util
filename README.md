@@ -11,7 +11,7 @@ Prerequis
 =====================
  * PHP 5.2.x min
 
-Prerequis
+Dependencies
 =====================
         N/A
 

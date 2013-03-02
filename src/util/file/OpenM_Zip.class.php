@@ -51,7 +51,20 @@ class OpenM_Zip {
         $zip->close();
     }
 
-    private static function recurse_zip($src, &$zip, $path_length) {
+    public static function unZip($src, $target) {
+        $zip = new ZipArchive();
+        $res = $zip->open($src);
+        if ($res === TRUE) {
+            if ($zip->extractTo($target))
+                return true;
+            else
+                return false;
+        }
+        else
+            return false;
+    }
+
+    private static function recurse_zip($src, $zip, $path_length) {
         $dir = opendir($src);
         while (false !== ( $file = readdir($dir))) {
             if (( $file != '.' ) && ( $file != '..' )) {

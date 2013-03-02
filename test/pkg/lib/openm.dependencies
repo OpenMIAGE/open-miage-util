@@ -1,0 +1,4 @@
+internal=openm.int.dependencies
+internal.test=openm.int.dependencies
+external=openm.ext.dependencies
+external.test=openm.ext.dependencies

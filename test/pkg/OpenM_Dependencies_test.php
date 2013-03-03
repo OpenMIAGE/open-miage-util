@@ -31,5 +31,5 @@ while ($e->hasNext()) {
     echo "$key=$value<br>";
 }
 
-$dependencies->install("./temp", true);
+$dependencies->addInClassPath();
 ?>

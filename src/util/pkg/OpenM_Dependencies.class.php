@@ -140,7 +140,7 @@ class OpenM_Dependencies {
      * @param boolean $display is true to activate follow-up in display else false
      * @throws InvalidArgumentException
      */
-    public function install($temp_path, $display = false) {
+    public function install($temp_path, $type = self::RUN, $display = false) {
         if (!String::isString($temp_path))
             throw new InvalidArgumentException("lib_path must be a string");
         if (!is_dir($temp_path) && !RegExp::preg("/^\//", $temp_path) && !RegExp::preg("/^\./", $temp_path))
@@ -150,7 +150,7 @@ class OpenM_Dependencies {
         if ($display)
             echo "Installation start:<br>";
         $temp_path_formated = (RegExp::preg("/\/$/", $temp_path) ? substr($temp_path, 0, -1) : $temp_path);
-        $dependencies = $this->explore(self::RUN)->putAll($this->explore(self::DISPLAY))->putAll($this->explore(self::TEST));
+        $dependencies = $this->explore($type);
         if ($display)
             echo " - All dependencies <b>successfully explored</b><br>";
         $e = $dependencies->keys();
@@ -190,31 +190,40 @@ class OpenM_Dependencies {
         OpenM_Dir::rm($temp_path);
         OpenM_Dir::mk($temp_path);
 
-        $internal_run_compiled = "";
-        $e = $this->explore(self::RUN)->keys();
+        $dependencies_compiled = "";
+        $e = $this->explore($type)->keys();
         while ($e->hasNext())
-            $internal_run_compiled .= $e->next() . "\r\n";
-        file_put_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . self::RUN . self::COMPILED_SUFFIX, $internal_run_compiled);
+            $dependencies_compiled .= $e->next() . "\r\n";
+        file_put_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . $type . self::COMPILED_SUFFIX, $dependencies_compiled);
         if ($display)
-            echo " - " . self::OpenM_DEPENDENCIES . self::RUN . self::COMPILED_SUFFIX . " <b>successfully created</b><br>";
-        $internal_test_compiled = "";
-        $e = $this->explore(self::TEST)->keys();
-        while ($e->hasNext())
-            $internal_test_compiled .= $e->next() . "\r\n";
-        file_put_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . self::TEST . self::COMPILED_SUFFIX, $internal_test_compiled);
-        if ($display)
-            echo " - " . self::OpenM_DEPENDENCIES . self::TEST . self::COMPILED_SUFFIX . " <b>successfully created</b><br>";
-
-        $internal_display_compiled = "";
-        $e = $this->explore(self::DISPLAY)->keys();
-        while ($e->hasNext())
-            $internal_display_compiled .= $e->next() . "\r\n";
-        file_put_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . self::DISPLAY . self::COMPILED_SUFFIX, $internal_display_compiled);
-        if ($display)
-            echo " - " . self::OpenM_DEPENDENCIES . self::DISPLAY . self::COMPILED_SUFFIX . " <b>successfully created</b><br>";
+            echo " - " . self::OpenM_DEPENDENCIES . $type . self::COMPILED_SUFFIX . " <b>successfully created</b><br>";
 
         if ($display)
             echo "Installation <b>successfully ended</b>.<br>";
+    }
+
+    /**
+     * used to dynamically add dependencies in class path
+     * if dependencies are not present, this will launch installation before adding
+     * @param String $type is type of class path required (Ex RUN)
+     */
+    public function addInClassPath($type = self::RUN) {
+        if ($type != self::RUN && $type != self::DISPLAY && $type != self::TEST)
+            throw new InvalidArgumentException("type must be a valid type");
+
+        $file = $this->lib_path . "/" . self::OpenM_DEPENDENCIES . $type . self::COMPILED_SUFFIX;
+        if (is_file($file)) {
+            $file_content_array = explode("\r\n", file_get_contents($file));
+            foreach ($file_content_array as $value) {
+                if ($value != "") {
+                    Import::addLibPath($value);
+                }
+            }
+        } else {
+            $this->install($this->lib_path . "/temp", $type);
+            OpenM_Dir::rm($this->lib_path . "/temp");
+            $this->addInClassPath($type);
+        }
     }
 
 }

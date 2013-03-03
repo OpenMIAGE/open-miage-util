@@ -31,17 +31,21 @@ class OpenM_Dependencies {
     const INTERNAL = "internal";
     const EXTERNAL = "external";
     const TEST = ".test";
-    const INTERNAL_REPOSITORY_URL_KEY = "install.int.lib.prefix";
+    const RUN = ".run";
+    const DISPLAY = ".display";
+    const COMPILED_SUFFIX = ".compiled";
+    const INTERNAL_REPOSITORY_URL_KEY = "openm.internal.repository";
 
     /**
      *
      * @var HashtableString 
      */
-    private $dependencies;
     private $dependencies_test;
     private $dependencies_test_loaded = false;
     private $dependencies_run;
     private $dependencies_run_loaded = false;
+    private $dependencies_display;
+    private $dependencies_display_loaded = false;
     private $lib_path;
 
     /**
@@ -56,6 +60,7 @@ class OpenM_Dependencies {
         $this->lib_path = realpath($lib_path);
         $this->dependencies_run = new HashtableString();
         $this->dependencies_test = new HashtableString();
+        $this->dependencies_display = new HashtableString();
     }
 
     /**
@@ -63,56 +68,70 @@ class OpenM_Dependencies {
      * @param boolean $test is true to recover test dependencies only else false
      * @return HashtableString
      */
-    public function explore($test = false) {
-        if ($test) {
-            if ($this->dependencies_test_loaded)
-                return $this->dependencies_test->copy();
-            $this->dependencies = $this->dependencies_test;
-            $this->dependencies_test_loaded = true;
-        } else {
-            if ($this->dependencies_run_loaded)
-                return $this->dependencies_run->copy();
-            $this->dependencies = $this->dependencies_run;
-            $this->dependencies_run_loaded = true;
+    public function explore($type = self::RUN) {
+        switch ($type) {
+            case self::RUN:
+                if ($this->dependencies_run_loaded)
+                    return $this->dependencies_run->copy();
+                else
+                    $this->dependencies_run_loaded = true;
+                return $this->_explore($this->lib_path, $this->dependencies_run, self::RUN)->copy();
+                break;
+            case self::TEST:
+                if ($this->dependencies_test_loaded)
+                    return $this->dependencies_test->copy();
+                else
+                    $this->dependencies_test_loaded = true;
+                return $this->_explore($this->lib_path, $this->dependencies_test, self::TEST)->copy();
+                break;
+            case self::DISPLAY:
+                if ($this->dependencies_display_loaded)
+                    return $this->dependencies_display->copy();
+                else
+                    $this->dependencies_display_loaded = true;
+                return $this->_explore($this->lib_path, $this->dependencies_display, self::DISPLAY)->copy();
+                break;
+            default:
+                throw new InvalidArgumentException("type bad value");
+                break;
         }
-        return $this->_explore($this->lib_path, $test)->copy();
     }
 
-    private function _explore($explore_dir_path, $test = false) {
+    private function _explore($explore_dir_path, HashtableString $dependencies, $type = self::RUN) {
         $explore_dir_path_formated = $explore_dir_path . (RegExp::preg("/\/$/", $explore_dir_path) ? "" : "/");
-        OpenM_Log::debug($explore_dir_path_formated . self::OpenM_DEPENDENCIES, __CLASS__, __METHOD__, __LINE__);
+        OpenM_Log::debug("$type/read: " . $explore_dir_path_formated . self::OpenM_DEPENDENCIES, __CLASS__, __METHOD__, __LINE__);
         $explored_dependency_file = Properties::fromFile($explore_dir_path_formated . self::OpenM_DEPENDENCIES)->getAll();
         $e = $explored_dependency_file->keys();
         while ($e->hasNext()) {
             $file_key = $e->next();
-            if ($file_key == self::INTERNAL . ($test ? self::TEST : "")) {
-                OpenM_Log::debug($explore_dir_path_formated . $explored_dependency_file->get($file_key), __CLASS__, __METHOD__, __LINE__);
+            if ($file_key == self::INTERNAL . $type || ($type == self::TEST && $file_key == self::INTERNAL . self::RUN)) {
+                OpenM_Log::debug("$type/read: " . $explore_dir_path_formated . $explored_dependency_file->get($file_key), __CLASS__, __METHOD__, __LINE__);
                 $internal_file = Properties::fromFile($explore_dir_path_formated . $explored_dependency_file->get($file_key));
                 if ($internal_file->get(self::INTERNAL_REPOSITORY_URL_KEY) != null)
                     $repository_url = $internal_file->get(self::INTERNAL_REPOSITORY_URL_KEY);
                 $lib_enum = $internal_file->getAll()->keys();
                 while ($lib_enum->hasNext()) {
                     $dependency = $lib_enum->next();
-                    if ($this->dependencies->containsKey($dependency))
+                    if ($dependencies->containsKey($dependency))
                         continue;
-                    if (!RegExp::preg("/^OpenM/", $dependency))
+                    if ($dependency == self::INTERNAL_REPOSITORY_URL_KEY)
                         continue;
                     $file_path = $internal_file->get($dependency);
                     $remote_dir = $repository_url . $dependency . "/";
-                    $this->dependencies->put($dependency, $remote_dir . $file_path . "::/lib/" . $dependency);
-                    $this->_explore($remote_dir);
+                    $dependencies->put($dependency, $remote_dir . $file_path . "::/lib/" . $dependency);
+                    $this->_explore($remote_dir, $dependencies);
                 }
-            } else if ($file_key == self::EXTERNAL . ($test ? self::TEST : "")) {
-                OpenM_Log::debug($explore_dir_path_formated . $explored_dependency_file->get($file_key), __CLASS__, __METHOD__, __LINE__);
+            } else if ($file_key == self::EXTERNAL . $type || ($type == self::TEST && $file_key == self::EXTERNAL . self::RUN)) {
+                OpenM_Log::debug("$type/read: " . $explore_dir_path_formated . $explored_dependency_file->get($file_key), __CLASS__, __METHOD__, __LINE__);
                 $external_file = Properties::fromFile($explore_dir_path_formated . $explored_dependency_file->get($file_key));
                 $lib_enum = $external_file->getAll()->keys();
                 while ($lib_enum->hasNext()) {
                     $dependency = $lib_enum->next();
-                    $this->dependencies->put($dependency, $external_file->get($dependency));
+                    $dependencies->put($dependency, $external_file->get($dependency));
                 }
             }
         }
-        return $this->dependencies;
+        return $dependencies;
     }
 
     /**
@@ -131,7 +150,7 @@ class OpenM_Dependencies {
         if ($display)
             echo "Installation start:<br>";
         $temp_path_formated = (RegExp::preg("/\/$/", $temp_path) ? substr($temp_path, 0, -1) : $temp_path);
-        $dependencies = $this->explore()->putAll($this->explore(true));
+        $dependencies = $this->explore(self::RUN)->putAll($this->explore(self::DISPLAY))->putAll($this->explore(self::TEST));
         if ($display)
             echo " - All dependencies <b>successfully explored</b><br>";
         $e = $dependencies->keys();
@@ -170,6 +189,30 @@ class OpenM_Dependencies {
         }
         OpenM_Dir::rm($temp_path);
         OpenM_Dir::mk($temp_path);
+
+        $internal_run_compiled = "";
+        $e = $this->explore(self::RUN)->keys();
+        while ($e->hasNext())
+            $internal_run_compiled .= $e->next() . "\r\n";
+        file_put_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . self::RUN . self::COMPILED_SUFFIX, $internal_run_compiled);
+        if ($display)
+            echo " - " . self::OpenM_DEPENDENCIES . self::RUN . self::COMPILED_SUFFIX . " <b>successfully created</b><br>";
+        $internal_test_compiled = "";
+        $e = $this->explore(self::TEST)->keys();
+        while ($e->hasNext())
+            $internal_test_compiled .= $e->next() . "\r\n";
+        file_put_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . self::TEST . self::COMPILED_SUFFIX, $internal_test_compiled);
+        if ($display)
+            echo " - " . self::OpenM_DEPENDENCIES . self::TEST . self::COMPILED_SUFFIX . " <b>successfully created</b><br>";
+
+        $internal_display_compiled = "";
+        $e = $this->explore(self::DISPLAY)->keys();
+        while ($e->hasNext())
+            $internal_display_compiled .= $e->next() . "\r\n";
+        file_put_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . self::DISPLAY . self::COMPILED_SUFFIX, $internal_display_compiled);
+        if ($display)
+            echo " - " . self::OpenM_DEPENDENCIES . self::DISPLAY . self::COMPILED_SUFFIX . " <b>successfully created</b><br>";
+
         if ($display)
             echo "Installation <b>successfully ended</b>.<br>";
     }

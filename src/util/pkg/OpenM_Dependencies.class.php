@@ -206,10 +206,15 @@ class OpenM_Dependencies {
      * used to dynamically add dependencies in class path
      * if dependencies are not present, this will launch installation before adding
      * @param String $type is type of class path required (Ex RUN)
+     * @param boolean $autoDownload 
+     * @throws InvalidArgumentException
+     * @trows ImportException
      */
-    public function addInClassPath($type = self::RUN) {
+    public function addInClassPath($type = self::RUN, $autoDownload = true) {
         if ($type != self::RUN && $type != self::DISPLAY && $type != self::TEST)
             throw new InvalidArgumentException("type must be a valid type");
+        if (!is_bool($autoDownload))
+            throw new InvalidArgumentException("autoDownload must be a boolean");
 
         $file = $this->lib_path . "/" . self::OpenM_DEPENDENCIES . $type . self::COMPILED_SUFFIX;
         if (is_file($file)) {
@@ -219,11 +224,13 @@ class OpenM_Dependencies {
                     Import::addLibPath($value);
                 }
             }
-        } else {
+        } else if ($autoDownload) {
             $this->install($this->lib_path . "/temp", $type);
             OpenM_Dir::rm($this->lib_path . "/temp");
             $this->addInClassPath($type);
         }
+        else
+            throw new ImportException("dependencies installation not OK, thanks to install dependencies before or activate autoDownload");
     }
 
 }

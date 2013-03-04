@@ -34,6 +34,7 @@ class OpenM_Dependencies {
     const RUN = ".run";
     const DISPLAY = ".display";
     const COMPILED_SUFFIX = ".compiled";
+    const CHECK_SUFFIX = ".check";
     const INTERNAL_REPOSITORY_URL_KEY = "openm.internal.repository";
 
     /**
@@ -147,10 +148,21 @@ class OpenM_Dependencies {
             throw new InvalidArgumentException("lib_path must be a valid directory path");
         if (!is_bool($display))
             throw new InvalidArgumentException("display must be a boolean");
+        if (!String::isString($type) && !is_array($type))
+            throw new InvalidArgumentException("type must be a string or an array");
+        if (!$this->isValid($type))
+            throw new InvalidArgumentException("type must be a valid type");
         if ($display)
             echo "Installation start:<br>";
         $temp_path_formated = (RegExp::preg("/\/$/", $temp_path) ? substr($temp_path, 0, -1) : $temp_path);
-        $dependencies = $this->explore($type);
+        if (String::isString($type))
+            $dependencies = $this->explore($type);
+        else {
+            $dependencies = new HashtableString();
+            foreach ($type as $value) {
+                $dependencies->putAll($this->explore($value));
+            }
+        }
         if ($display)
             echo " - All dependencies <b>successfully explored</b><br>";
         $e = $dependencies->keys();
@@ -190,13 +202,32 @@ class OpenM_Dependencies {
         OpenM_Dir::rm($temp_path);
         OpenM_Dir::mk($temp_path);
 
-        $dependencies_compiled = "";
-        $e = $this->explore($type)->keys();
-        while ($e->hasNext())
-            $dependencies_compiled .= $e->next() . "\r\n";
-        file_put_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . $type . self::COMPILED_SUFFIX, $dependencies_compiled);
-        if ($display)
-            echo " - " . self::OpenM_DEPENDENCIES . $type . self::COMPILED_SUFFIX . " <b>successfully created</b><br>";
+        if (String::isString($type))
+            $type = array($type);
+
+        foreach ($type as $value) {
+            $dependencies_compiled = "";
+            $e = $this->explore($value)->keys();
+            while ($e->hasNext())
+                $dependencies_compiled .= $e->next() . "\r\n";
+            file_put_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . $value . self::COMPILED_SUFFIX, $dependencies_compiled);
+            if ($display)
+                echo " - " . self::OpenM_DEPENDENCIES . $value . self::COMPILED_SUFFIX . " <b>successfully created</b><br>";
+
+            $explored_dependency_file = Properties::fromFile($this->lib_path . "/" . self::OpenM_DEPENDENCIES)->getAll();
+            $e = $explored_dependency_file->keys();
+            $checkFile = self::OpenM_DEPENDENCIES . "=" . filemtime($this->lib_path . "/" . self::OpenM_DEPENDENCIES) . "\r\n";
+            while ($e->hasNext()) {
+                $key = $e->next();
+                if (!RegExp::preg("/" . $value . "$/", $key))
+                    continue;
+                $file = $explored_dependency_file->get($key);
+                $checkFile .= $file . "=" . filemtime($this->lib_path . "/" . $file) . "\r\n";
+            }
+            file_put_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . $value . self::CHECK_SUFFIX, $checkFile);
+            if ($display)
+                echo " - " . self::OpenM_DEPENDENCIES . $value . self::CHECK_SUFFIX . " <b>successfully created</b><br>";
+        }
 
         if ($display)
             echo "Installation <b>successfully ended</b>.<br>";
@@ -206,24 +237,83 @@ class OpenM_Dependencies {
      * used to dynamically add dependencies in class path
      * if dependencies are not present, this will launch installation before adding
      * @param String $type is type of class path required (Ex RUN)
+     * @param boolean $autoDownload 
+     * @throws InvalidArgumentException
+     * @trows ImportException
      */
-    public function addInClassPath($type = self::RUN) {
+    public function addInClassPath($type = self::RUN, $autoDownload = true) {
         if ($type != self::RUN && $type != self::DISPLAY && $type != self::TEST)
             throw new InvalidArgumentException("type must be a valid type");
+        if (!is_bool($autoDownload))
+            throw new InvalidArgumentException("autoDownload must be a boolean");
 
         $file = $this->lib_path . "/" . self::OpenM_DEPENDENCIES . $type . self::COMPILED_SUFFIX;
         if (is_file($file)) {
+            $checkFile = file_get_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . $type . self::CHECK_SUFFIX);
+            $checkLine = explode("\r\n", $checkFile);
+            foreach ($checkLine as $line) {
+                $keyValue = explode("=", $line);
+                if (sizeof($keyValue) != 2)
+                    continue;
+                echo filemtime($this->lib_path . "/" . $keyValue[0]) . "!=" . $keyValue[1] . "<br>";
+                if (filemtime($this->lib_path . "/" . $keyValue[0]) != $keyValue[1]) {
+                    $this->autoDownload($type);
+                }
+            }
             $file_content_array = explode("\r\n", file_get_contents($file));
             foreach ($file_content_array as $value) {
                 if ($value != "") {
                     Import::addLibPath($value);
                 }
             }
-        } else {
-            $this->install($this->lib_path . "/temp", $type);
-            OpenM_Dir::rm($this->lib_path . "/temp");
-            $this->addInClassPath($type);
+        } else if ($autoDownload) {
+            $this->autoDownload($type);
+            $this->addInClassPath($type, $autoDownload);
         }
+        else
+            throw new ImportException("dependencies installation not OK, thanks to install dependencies before or activate autoDownload");
+    }
+
+    private function autoDownload($type) {
+        $this->install($this->lib_path . "/temp", $type);
+        OpenM_Dir::rm($this->lib_path . "/temp");
+        $this->addInClassPath($type);
+    }
+
+    private function isValid($type) {
+        if (is_array($type)) {
+            foreach ($type as $value) {
+                if (!$this->isValid($value))
+                    return false;
+            }
+            return true;
+        }
+        else {
+            if (!String::isString($type))
+                return false;
+            switch ($type) {
+                case self::RUN:
+                    return true;
+                    break;
+                case self::TEST:
+                    return true;
+                    break;
+                case self::DISPLAY:
+                    return true;
+                    break;
+                default:
+                    return false;
+                    break;
+            }
+        }
+    }
+
+    public static function ALL() {
+        return array(self::RUN, self::TEST, self::DISPLAY);
+    }
+
+    public static function RUN_AND_TEST() {
+        return array(self::RUN, self::TEST);
     }
 
 }

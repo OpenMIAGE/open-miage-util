@@ -246,29 +246,33 @@ class OpenM_Dependencies {
             throw new InvalidArgumentException("type must be a valid type");
         if (!is_bool($autoDownload))
             throw new InvalidArgumentException("autoDownload must be a boolean");
-
         $file = $this->lib_path . "/" . self::OpenM_DEPENDENCIES . $type . self::COMPILED_SUFFIX;
         if (is_file($file)) {
-            $checkFile = file_get_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . $type . self::CHECK_SUFFIX);
-            $checkLine = explode("\r\n", $checkFile);
-            foreach ($checkLine as $line) {
-                $keyValue = explode("=", $line);
-                if (sizeof($keyValue) != 2)
-                    continue;
-                echo filemtime($this->lib_path . "/" . $keyValue[0]) . "!=" . $keyValue[1] . "<br>";
-                if (filemtime($this->lib_path . "/" . $keyValue[0]) != $keyValue[1]) {
-                    $this->autoDownload($type);
+            if ($autoDownload) {
+                $checkFile = $this->lib_path . "/" . self::OpenM_DEPENDENCIES . $type . self::CHECK_SUFFIX;
+                if (!is_file($checkFile))
+                    return $this->autoDownload($type);
+
+                $checkFileContent = Properties::fromFile($checkFile)->getAll();
+                $e = $checkFileContent->keys();
+                while ($e->hasNext()) {
+                    $key = $e->next();
+                    if (filemtime($this->lib_path . "/" . $key) != $checkFileContent->get($key)->toInt()) {
+                        return $this->autoDownload($type);
+                    }
                 }
             }
             $file_content_array = explode("\r\n", file_get_contents($file));
             foreach ($file_content_array as $value) {
                 if ($value != "") {
-                    Import::addLibPath($value);
+                    if (is_dir(Import::LIB . "/$value"))
+                        Import::addLibPath($value);
+                    else
+                        return $this->autoDownload($type);
                 }
             }
         } else if ($autoDownload) {
-            $this->autoDownload($type);
-            $this->addInClassPath($type, $autoDownload);
+            return $this->autoDownload($type);
         }
         else
             throw new ImportException("dependencies installation not OK, thanks to install dependencies before or activate autoDownload");
@@ -277,7 +281,7 @@ class OpenM_Dependencies {
     private function autoDownload($type) {
         $this->install($this->lib_path . "/temp", $type);
         OpenM_Dir::rm($this->lib_path . "/temp");
-        $this->addInClassPath($type);
+        $this->addInClassPath($type, true);
     }
 
     private function isValid($type) {

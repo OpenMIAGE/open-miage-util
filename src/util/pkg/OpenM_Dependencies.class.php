@@ -257,9 +257,8 @@ class OpenM_Dependencies {
                 $e = $checkFileContent->keys();
                 while ($e->hasNext()) {
                     $key = $e->next();
-                    if (filemtime($this->lib_path . "/" . $key) != $checkFileContent->get($key)->toInt()) {
+                    if (filemtime($this->lib_path . "/" . $key) != $checkFileContent->get($key)->toInt())
                         return $this->autoDownload($type);
-                    }
                 }
             }
             $file_content_array = explode("\r\n", file_get_contents($file));
@@ -318,6 +317,10 @@ class OpenM_Dependencies {
 
     public static function RUN_AND_TEST() {
         return array(self::RUN, self::TEST);
+    }
+
+    public static function RUN_AND_DISPLAY() {
+        return array(self::RUN, self::DISPLAY);
     }
 
 }

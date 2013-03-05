@@ -27,6 +27,7 @@ class Properties {
     private $properties;
     private $filePath;
     private static $cacheProperties;
+    private static $cachePropertiesByModificationTime;
     private static $instance;
 
     /**
@@ -50,26 +51,32 @@ class Properties {
         if ($propertyFilePath instanceof String)
             $propertyFilePath .= "";
 
-
+        $isUrl = false;
         if (!OpenM_URL::isValid($propertyFilePath)) {
             if (!is_file($propertyFilePath))
                 throw new InvalidArgumentException("argument must be a valid directory path ($propertyFilePath)");
             $this->filePath = realpath($propertyFilePath);
         }
-        else
+        else {
             $this->filePath = $propertyFilePath;
+            $isUrl = true;
+        }
 
-        if (self::$cacheProperties == null)
+        if (self::$cacheProperties == null) {
             self::$cacheProperties = new HashtableString();
+            self::$cachePropertiesByModificationTime = new HashtableString();
+        }
 
         if (self::$cacheProperties->containsKey($this->filePath)) {
-            $this->properties = self::$cacheProperties->get($this->filePath);
-            return;
+            if ($isUrl || (!$isUrl && self::$cachePropertiesByModificationTime->get($this->filePath) == filemtime($this->filePath))) {
+                $this->properties = self::$cacheProperties->get($this->filePath);
+                return;
+            }
         }
 
         $fileContent = file_get_contents($this->filePath);
-        $fileContent = str_replace("\r", '', $fileContent);
-        $array = explode("\n", $fileContent);
+        $fileContent_formated = str_replace("\r", '', $fileContent);
+        $array = explode("\n", $fileContent_formated);
         $e = new Enum($array);
         while ($e->hasNext()) {
             $string = $e->next();
@@ -80,6 +87,8 @@ class Properties {
         }
 
         self::$cacheProperties->put($this->filePath, $this->properties);
+        if (!$isUrl)
+            self::$cachePropertiesByModificationTime->put($this->filePath, filemtime($this->filePath));
     }
 
     /**

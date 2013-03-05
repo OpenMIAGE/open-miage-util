@@ -70,7 +70,7 @@ class Properties {
         if (self::$cacheProperties->containsKey($this->filePath)) {
             if ($isUrl || (!$isUrl && self::$cachePropertiesByModificationTime->get($this->filePath) == filemtime($this->filePath))) {
                 $this->properties = self::$cacheProperties->get($this->filePath);
-                return;
+                return $this;
             }
         }
 
@@ -89,6 +89,8 @@ class Properties {
         self::$cacheProperties->put($this->filePath, $this->properties);
         if (!$isUrl)
             self::$cachePropertiesByModificationTime->put($this->filePath, filemtime($this->filePath));
+        
+        return $this;
     }
 
     /**
@@ -226,9 +228,11 @@ class Properties {
         if (self::$instance == null)
             self::$instance = new HashtableString();
 
-        if (OpenM_URL::isValid($propertyFilePath))
+        $isUrl = false;
+        if (OpenM_URL::isValid($propertyFilePath)) {
             $realPath = $propertyFilePath;
-        else {
+            $isUrl = true;
+        } else {
             $realPath = realpath($propertyFilePath);
             if (!is_file($realPath)) {
                 $realPath = Import::getAbsolutePath($propertyFilePath);
@@ -237,8 +241,13 @@ class Properties {
             }
         }
 
-        if (self::$instance->containskey($realPath))
-            return self::$instance->get($realPath);
+        if (self::$instance->containskey($realPath)) {
+            if ($isUrl || (!$isUrl && self::$cachePropertiesByModificationTime->get($realPath) == filemtime($realPath))) {
+                return self::$instance->get($realPath);
+            }
+            else
+                return self::$instance->get($realPath)->load($realPath);
+        }
         else {
             $return = new Properties($propertyFilePath);
             self::$instance->put($realPath, $return);

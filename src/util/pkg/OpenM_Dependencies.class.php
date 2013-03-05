@@ -105,7 +105,7 @@ class OpenM_Dependencies {
         $e = $explored_dependency_file->keys();
         while ($e->hasNext()) {
             $file_key = $e->next();
-            if ($file_key == self::INTERNAL . $type || ($type == self::TEST && $file_key == self::INTERNAL . self::RUN)) {
+            if ($file_key == self::INTERNAL . $type) {
                 OpenM_Log::debug("$type/read: " . $explore_dir_path_formated . $explored_dependency_file->get($file_key), __CLASS__, __METHOD__, __LINE__);
                 $internal_file = Properties::fromFile($explore_dir_path_formated . $explored_dependency_file->get($file_key));
                 if ($internal_file->get(self::INTERNAL_REPOSITORY_URL_KEY) != null)
@@ -122,7 +122,7 @@ class OpenM_Dependencies {
                     $dependencies->put($dependency, $remote_dir . $file_path . "::/lib/" . $dependency);
                     $this->_explore($remote_dir, $dependencies);
                 }
-            } else if ($file_key == self::EXTERNAL . $type || ($type == self::TEST && $file_key == self::EXTERNAL . self::RUN)) {
+            } else if ($file_key == self::EXTERNAL . $type) {
                 OpenM_Log::debug("$type/read: " . $explore_dir_path_formated . $explored_dependency_file->get($file_key), __CLASS__, __METHOD__, __LINE__);
                 $external_file = Properties::fromFile($explore_dir_path_formated . $explored_dependency_file->get($file_key));
                 $lib_enum = $external_file->getAll()->keys();

@@ -28,11 +28,17 @@ class OpenM_Package {
     private static $count;
     private static $temp = "temp/";
 
-    public static function build() {
+    public static function build($lib_path = null) {
         Import::php("util.file.OpenM_Dir");
         Import::php("util.file.OpenM_Zip");
 
-        $file = "../lib/version";
+        if ($lib_path == null)
+            $lib_path = "../lib";
+
+        if (!is_dir($lib_path))
+            throw new OpenM_PackageException("$lib_path must be a valid directory");
+
+        $file = "$lib_path/version";
         if (!is_file($file))
             throw new OpenM_PackageException("$file not found");
         $versionArray = explode("/", file_get_contents($file));
@@ -88,9 +94,9 @@ class OpenM_Package {
         file_put_contents("build.count", self::$count + 1);
     }
 
-    public static function build_full() {
-        self::build();
-        $dependencies = new OpenM_Dependencies("../lib");
+    public static function build_full($lib_path = null) {
+        self::build($lib_path);
+        $dependencies = new OpenM_Dependencies($lib_path);
         $dependencies->addInClassPath(OpenM_Dependencies::RUN);
         $dependencies->addInClassPath(OpenM_Dependencies::DISPLAY);
         $target_file_name = self::$version . "_" . self::$count . "/" . self::$version . "_" . self::$count . ".zip";
@@ -124,7 +130,7 @@ class OpenM_Package {
                 die("$path$value is not a file or a directory");
         }
 
-        $util = Properties::fromFile("../lib/openm.util.dependencies");
+        $util = Properties::fromFile("$lib_path/openm.util.dependencies");
         $e = $util->getAll()->keys();
         while ($e->hasNext()) {
             $dir = $e->next();

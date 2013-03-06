@@ -2,7 +2,8 @@
 
 /**
  * Manage package exception
- * @package OpenM\pkg
+ * @package OpenM
+ * @subpackage util\pkg
  * @copyright (c) 2013, www.open-miage.org
  * @license http://www.apache.org/licenses/LICENSE-2.0 Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

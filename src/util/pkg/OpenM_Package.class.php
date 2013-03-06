@@ -1,6 +1,7 @@
 <?php
 
 Import::php("util.pkg.OpenM_PackageException");
+Import::php("util.pkg.OpenM_Dependencies");
 
 /**
  * 
@@ -28,14 +29,6 @@ class OpenM_Package {
     private static $temp = "temp/";
 
     public static function build() {
-        $file = "../lib/openm.util.dependencies";
-        if (!is_file($file))
-            throw new OpenM_PackageException("$file not found");
-        $util_version = explode("=", file_get_contents($file));
-        $file = dirname(dirname(dirname(__FILE__))) . "/lib/" . $util_version[0] . "/Import.class.php";
-        if (!is_file($file))
-            throw new OpenM_PackageException("$file not found");
-        require_once $file;
         Import::php("util.file.OpenM_Dir");
         Import::php("util.file.OpenM_Zip");
 
@@ -83,22 +76,25 @@ class OpenM_Package {
                 die("$path$value is not a file or a directory");
         }
         self::$version = $build_config[1] . "_$version";
-        if (mkdir(self::$version))
-            echo " - " . self::$version . " <b>correctly created</b><br>";
+        if (mkdir(self::$version . "_" . self::$count))
+            echo " - " . self::$version . "_" . self::$count . " <b>correctly created</b><br>";
         else
             die(self::$version . " not correctly created");
-        $target_file_name = self::$version . "/" . self::$version . "_" . self::$count . ".zip";
+        $target_file_name = self::$version . "_" . self::$count . "/" . self::$version . "_" . self::$count . ".zip";
         OpenM_Zip::zip(self::$temp, $target_file_name);
-        echo " - self::$temp <b>correctly ziped to</b> $target_file_name<br>";
+        echo " - " . self::$temp . "_" . self::$count . " <b>correctly ziped to</b> $target_file_name<br>";
         OpenM_Dir::rm(self::$temp);
-        echo " - self::$temp <b>correctly removed</b><br>";
+        echo " - " . self::$temp . " <b>correctly removed</b><br>";
         file_put_contents("build.count", self::$count + 1);
     }
 
     public static function build_full() {
         self::build();
-        $target_file_name = self::$version . "/" . self::$version . "_" . self::$count . ".zip";
-        $target_full_file_name = self::$version . "/" . self::$version . "_" . self::$count . "_full.zip";
+        $dependencies = new OpenM_Dependencies("../lib");
+        $dependencies->addInClassPath(OpenM_Dependencies::RUN);
+        $dependencies->addInClassPath(OpenM_Dependencies::DISPLAY);
+        $target_file_name = self::$version . "_" . self::$count . "/" . self::$version . "_" . self::$count . ".zip";
+        $target_full_file_name = self::$version . "_" . self::$count . "/" . self::$version . "_" . self::$count . "_full.zip";
         $zip = new ZipArchive();
         $res = $zip->open($target_file_name);
         if ($res === TRUE) {
@@ -128,7 +124,6 @@ class OpenM_Package {
                 die("$path$value is not a file or a directory");
         }
 
-        Import::php("util.Properties");
         $util = Properties::fromFile("../lib/openm.util.dependencies");
         $e = $util->getAll()->keys();
         while ($e->hasNext()) {
@@ -138,9 +133,7 @@ class OpenM_Package {
                 echo " - $dir <b>correctly copied to</b> " . self::$temp . "/lib<br>";
             }
         }
-        Import::php("util.pkg.OpenM_Dependencies");
-        $d = new OpenM_Dependencies("../lib");
-        $e = $d->explore(OpenM_Dependencies::RUN)->putAll($d->explore(OpenM_Dependencies::DISPLAY))->keys();
+        $e = $dependencies->explore(OpenM_Dependencies::RUN)->putAll($dependencies->explore(OpenM_Dependencies::DISPLAY))->keys();
         while ($e->hasNext()) {
             $dir = $e->next();
             if (is_dir("../../lib/$dir")) {

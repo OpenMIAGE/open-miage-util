@@ -96,6 +96,8 @@ class OpenM_Package {
 
     public static function build_full($lib_path = null) {
         self::build($lib_path);
+        if ($lib_path == null)
+            $lib_path = "../lib";
         $dependencies = new OpenM_Dependencies($lib_path);
         $dependencies->addInClassPath(OpenM_Dependencies::RUN);
         $dependencies->addInClassPath(OpenM_Dependencies::DISPLAY);

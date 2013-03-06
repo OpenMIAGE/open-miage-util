@@ -59,6 +59,7 @@ class OpenM_Dependencies {
         if (!is_dir($lib_path))
             throw new InvalidArgumentException("lib_path must be a valid directory path");
         $this->lib_path = realpath($lib_path);
+        OpenM_Log::debug("initialize dependencies in $lib_path", __CLASS__, __METHOD__, __LINE__);
         $this->dependencies_run = new HashtableString();
         $this->dependencies_test = new HashtableString();
         $this->dependencies_display = new HashtableString();
@@ -70,6 +71,7 @@ class OpenM_Dependencies {
      * @return HashtableString
      */
     public function explore($type = self::RUN) {
+        OpenM_Log::debug("explore $type", __CLASS__, __METHOD__, __LINE__);
         switch ($type) {
             case self::RUN:
                 if ($this->dependencies_run_loaded)
@@ -119,6 +121,7 @@ class OpenM_Dependencies {
                         continue;
                     $file_path = $internal_file->get($dependency);
                     $remote_dir = $repository_url . $dependency . "/";
+                    OpenM_Log::debug("add $dependency=$remote_dir$file_path::/lib/$dependency", __CLASS__, __METHOD__, __LINE__);
                     $dependencies->put($dependency, $remote_dir . $file_path . "::/lib/" . $dependency);
                     $this->_explore($remote_dir, $dependencies);
                 }
@@ -128,6 +131,7 @@ class OpenM_Dependencies {
                 $lib_enum = $external_file->getAll()->keys();
                 while ($lib_enum->hasNext()) {
                     $dependency = $lib_enum->next();
+                    OpenM_Log::debug("add $dependency=" . $external_file->get($dependency), __CLASS__, __METHOD__, __LINE__);
                     $dependencies->put($dependency, $external_file->get($dependency));
                 }
             }
@@ -163,43 +167,61 @@ class OpenM_Dependencies {
                 $dependencies->putAll($this->explore($value));
             }
         }
+        OpenM_Log::debug("install with temp: $temp_path for type: $type", __CLASS__, __METHOD__, __LINE__);
         if ($display)
             echo " - All dependencies <b>successfully explored</b><br>";
         $e = $dependencies->keys();
         while ($e->hasNext()) {
-            if (is_dir($temp_path_formated))
+            if (is_dir($temp_path_formated)) {
                 OpenM_Dir::rm($temp_path_formated);
-            OpenM_Dir::mk($temp_path_formated);
+                OpenM_Log::debug("remove $temp_path_formated", __CLASS__, __METHOD__, __LINE__);
+            }
             $dependency = $e->next();
             $dependency_values = explode("=", $dependencies->get($dependency));
             $dependency_paths = explode("::", $dependency_values[0]);
             $dependency_path = $dependency_paths[0];
             $dependency_dir = Import::LIB . (RegExp::preg("/\/$/", Import::LIB) ? "" : "/") . $dependency;
+            OpenM_Log::debug("dependency dir: $dependency_dir", __CLASS__, __METHOD__, __LINE__);
             if (is_dir($dependency_dir))
-                OpenM_Dir::rm($dependency_dir);
+                continue;
+            OpenM_Log::debug("create $temp_path_formated", __CLASS__, __METHOD__, __LINE__);
+            OpenM_Dir::mk($temp_path_formated);
+            OpenM_Log::debug("create $dependency_dir", __CLASS__, __METHOD__, __LINE__);
             OpenM_Dir::mk($dependency_dir);
             if (RegExp::preg("/\.zip$/", $dependency_path)) {
+                OpenM_Log::debug("unZip", __CLASS__, __METHOD__, __LINE__);
                 $dependency_name = time();
+                OpenM_Log::debug("copy($dependency_path, $temp_path_formated/$dependency_name)", __CLASS__, __METHOD__, __LINE__);
                 copy($dependency_path, $temp_path_formated . "/" . $dependency_name);
+                OpenM_Log::debug("unZip($temp_path_formated/$dependency_name, $temp_path_formated)", __CLASS__, __METHOD__, __LINE__);
                 OpenM_Zip::unZip($temp_path_formated . "/" . $dependency_name, $temp_path_formated);
+                OpenM_Log::debug("remove $temp_path_formated/$dependency_name", __CLASS__, __METHOD__, __LINE__);
                 unlink($temp_path_formated . "/" . $dependency_name);
+                OpenM_Log::debug("$temp_path/(isset($dependency_paths[1]) ? $dependency_paths[1] : ''), $dependency_dir", __CLASS__, __METHOD__, __LINE__);
                 OpenM_Dir::cp("$temp_path/" . (isset($dependency_paths[1]) ? $dependency_paths[1] : ""), $dependency_dir);
+                OpenM_Log::debug("$dependency_path successfully copied and unZip in $dependency_dir", __CLASS__, __METHOD__, __LINE__);
                 if ($display)
                     echo " - $dependency_path <b>successfully copied and unZip in</b> $dependency_dir<br>";
             } else {
                 if (isset($dependency_values[1]) && $dependency_values[1] != "") {
+                    OpenM_Log::debug("copy($dependency_path, $dependency_dir/$dependency_values[1])", __CLASS__, __METHOD__, __LINE__);
                     copy($dependency_path, $dependency_dir . "/" . $dependency_values[1]);
+                    OpenM_Log::debug("$dependency_path successfully copied to $dependency_dir/$dependency_values[1]", __CLASS__, __METHOD__, __LINE__);
                     if ($display)
                         echo " - $dependency_path <b>successfully copied to</b> $dependency_dir/$dependency_values[1]<br>";
                 } else {
                     $target = $dependency_dir . "/" . substr($dependency_path, strrpos($dependency_path, "/") + 1);
-                    copy($dependency_path, "$dependency_dir/$target");
+                    OpenM_Log::debug("copy($dependency_path, $dependency_dir/$target)", __CLASS__, __METHOD__, __LINE__);
+                    if (copy($dependency_path, "$dependency_dir/$target"))
+                        OpenM_Log::debug("$dependency_path successfully copied to $dependency_dir/$target", __CLASS__, __METHOD__, __LINE__);
                     if ($display)
                         echo " - $dependency_path <b>successfully copied to</b> $dependency_dir/$target<br>";
                 }
             }
         }
+        OpenM_Log::debug("remove $temp_path", __CLASS__, __METHOD__, __LINE__);
         OpenM_Dir::rm($temp_path);
+        OpenM_Log::debug("create $temp_path", __CLASS__, __METHOD__, __LINE__);
         OpenM_Dir::mk($temp_path);
 
         if (String::isString($type))
@@ -211,9 +233,11 @@ class OpenM_Dependencies {
             while ($e->hasNext())
                 $dependencies_compiled .= $e->next() . "\r\n";
             file_put_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . $value . self::COMPILED_SUFFIX, $dependencies_compiled);
+            OpenM_Log::debug(self::OpenM_DEPENDENCIES . $value . self::COMPILED_SUFFIX . "successfully created", __CLASS__, __METHOD__, __LINE__);
             if ($display)
                 echo " - " . self::OpenM_DEPENDENCIES . $value . self::COMPILED_SUFFIX . " <b>successfully created</b><br>";
 
+            OpenM_Log::debug("load " . $this->lib_path . "/" . self::OpenM_DEPENDENCIES, __CLASS__, __METHOD__, __LINE__);
             $explored_dependency_file = Properties::fromFile($this->lib_path . "/" . self::OpenM_DEPENDENCIES)->getAll();
             $e = $explored_dependency_file->keys();
             $checkFile = self::OpenM_DEPENDENCIES . "=" . filemtime($this->lib_path . "/" . self::OpenM_DEPENDENCIES) . "\r\n";
@@ -222,13 +246,16 @@ class OpenM_Dependencies {
                 if (!RegExp::preg("/" . $value . "$/", $key))
                     continue;
                 $file = $explored_dependency_file->get($key);
+                OpenM_Log::debug("add line in file for $file", __CLASS__, __METHOD__, __LINE__);
                 $checkFile .= $file . "=" . filemtime($this->lib_path . "/" . $file) . "\r\n";
             }
             file_put_contents($this->lib_path . "/" . self::OpenM_DEPENDENCIES . $value . self::CHECK_SUFFIX, $checkFile);
+            OpenM_Log::debug(self::OpenM_DEPENDENCIES . $value . self::CHECK_SUFFIX . "successfully created", __CLASS__, __METHOD__, __LINE__);
             if ($display)
                 echo " - " . self::OpenM_DEPENDENCIES . $value . self::CHECK_SUFFIX . " <b>successfully created</b><br>";
         }
 
+        OpenM_Log::debug("Installation successfully ended", __CLASS__, __METHOD__, __LINE__);
         if ($display)
             echo "Installation <b>successfully ended</b>.<br>";
     }
@@ -247,9 +274,13 @@ class OpenM_Dependencies {
         if (!is_bool($autoDownload))
             throw new InvalidArgumentException("autoDownload must be a boolean");
         $file = $this->lib_path . "/" . self::OpenM_DEPENDENCIES . $type . self::COMPILED_SUFFIX;
+        OpenM_Log::debug("check compiled file: $file", __CLASS__, __METHOD__, __LINE__);
         if (is_file($file)) {
+            OpenM_Log::debug("file found", __CLASS__, __METHOD__, __LINE__);
             if ($autoDownload) {
+                OpenM_Log::debug("autoDownload activated", __CLASS__, __METHOD__, __LINE__);
                 $checkFile = $this->lib_path . "/" . self::OpenM_DEPENDENCIES . $type . self::CHECK_SUFFIX;
+                OpenM_Log::debug("check $checkFile", __CLASS__, __METHOD__, __LINE__);
                 if (!is_file($checkFile))
                     return $this->autoDownload($type);
 
@@ -261,16 +292,23 @@ class OpenM_Dependencies {
                         return $this->autoDownload($type);
                 }
             }
+            else
+                OpenM_Log::debug("autoDownload not activated", __CLASS__, __METHOD__, __LINE__);
+            OpenM_Log::debug("read $file", __CLASS__, __METHOD__, __LINE__);
             $file_content_array = explode("\r\n", file_get_contents($file));
             foreach ($file_content_array as $value) {
                 if ($value != "") {
-                    if (is_dir(Import::LIB . "/$value"))
+                    OpenM_Log::debug("check $value", __CLASS__, __METHOD__, __LINE__);
+                    if (is_dir(Import::LIB . "/$value")) {
+                        OpenM_Log::debug("addLibPath($value)", __CLASS__, __METHOD__, __LINE__);
                         Import::addLibPath($value);
+                    }
                     else
                         return $this->autoDownload($type);
                 }
             }
         } else if ($autoDownload) {
+            OpenM_Log::debug("file not found but autoDownload activated", __CLASS__, __METHOD__, __LINE__);
             return $this->autoDownload($type);
         }
         else
@@ -278,8 +316,11 @@ class OpenM_Dependencies {
     }
 
     private function autoDownload($type) {
+        OpenM_Log::debug("install " . $this->lib_path . "/temp, for type: $type", __CLASS__, __METHOD__, __LINE__);
         $this->install($this->lib_path . "/temp", $type);
+        OpenM_Log::debug("remove " . $this->lib_path . "/temp", __CLASS__, __METHOD__, __LINE__);
         OpenM_Dir::rm($this->lib_path . "/temp");
+        OpenM_Log::debug("addInClassPath($type, true)", __CLASS__, __METHOD__, __LINE__);
         $this->addInClassPath($type, true);
     }
 

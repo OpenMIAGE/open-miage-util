@@ -33,5 +33,5 @@ while ($e->hasNext()) {
 
 //$dependencies->install("./temp", OpenM_Dependencies::ALL(), TRUE);
 //OpenM_Dir::rm("temp");
-$dependencies->addInClassPath();
+//$dependencies->addInClassPath();
 ?>

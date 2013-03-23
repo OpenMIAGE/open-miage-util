@@ -79,7 +79,9 @@ class Properties {
         $array = explode("\n", $fileContent_formated);
         $e = new Enum($array);
         while ($e->hasNext()) {
-            $string = $e->next();
+            $string = trim($e->next());
+            if (substr($string, 0, 1) == "#")
+                continue;
             $key = substr($string, 0, strpos($string, '='));
             $value = substr($string, strlen($key) + 1);
             if (strlen($key) > 0)
@@ -89,7 +91,7 @@ class Properties {
         self::$cacheProperties->put($this->filePath, $this->properties);
         if (!$isUrl)
             self::$cachePropertiesByModificationTime->put($this->filePath, filemtime($this->filePath));
-        
+
         return $this;
     }
 

@@ -54,7 +54,7 @@ class OpenM_MapConvertor {
             $key = $e->next();
             $value = $array->get($key);
             if (String::isStringOrNull($value) || ($value instanceof HashtableString) || is_numeric($value))
-                $return[$key] = ($value instanceof HashtableString) ? self::mapToArray($value) : utf8_encode(($value instanceof String) ? "$value" : $value);
+                $return[$key] = is_numeric($value) ? $value : (($value instanceof HashtableString) ? self::mapToArray($value) : utf8_encode(($value instanceof String) ? "$value" : $value));
             else
                 throw new InvalidArgumentException("map must contain recursivly HashtableString or String");
         }
@@ -73,6 +73,8 @@ class OpenM_MapConvertor {
         foreach ($array as $key => $value) {
             if (is_array($value))
                 $return->put($key, self::arrayToMap($value));
+            else if (is_numeric($value))
+                $return->put($key, $value);
             else
                 $return->put($key, utf8_decode($value));
         }

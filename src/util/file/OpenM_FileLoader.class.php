@@ -80,7 +80,9 @@ class OpenM_FileLoader {
                 die("Forbidden file extension $ext");
                 break;
         }
-
+        header('Cache-Control: public');
+        header('Last-Modified: '.gmdate('D, d M Y H:i:s', filemtime($path)).' GMT');
+        
         @readfile($path);
     }
 

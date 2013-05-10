@@ -157,18 +157,22 @@ class OpenM_Package {
 
         $dirTarget = self::$version . "_" . self::$count . "/";
 
-        if (is_file("../lib/openm.dependencies.run.compiled")) {
-            if (copy("../lib/openm.dependencies.run.compiled", $dirTarget . "openm.dependencies.run.compiled"))
-                echo " - ../lib/openm.dependencies.run.compiled <b>correctly copied to</b> " . $dirTarget . "openm.dependencies.run.compiled <br>";
+        $openm_dependencies = "../lib/" . OpenM_Dependencies::OpenM_DEPENDENCIES;
+        if (is_file($openm_dependencies)) {
+            if (copy("$openm_dependencies", $dirTarget . OpenM_Dependencies::OpenM_DEPENDENCIES))
+                echo " - $openm_dependencies <b>correctly copied to</b> " . $dirTarget . OpenM_Dependencies::OpenM_DEPENDENCIES . " <br>";
+            $explored_dependency_file = Properties::fromFile($openm_dependencies)->getAll();
+            $e = $explored_dependency_file->keys();
+            while ($e->hasNext()) {
+                $file = $explored_dependency_file->get($e->next());
+                if (is_file("../lib/" . $file)) {
+                    if (copy("../lib/" . $file, $dirTarget . $file))
+                        echo " - ../lib/$file <b>correctly copied to</b> " . $dirTarget . $file . " <br>";
+                }
+            }
         }
-        if (is_file("../lib/openm.dependencies.display.compiled")) {
-            if (copy("../lib/openm.dependencies.display.compiled", $dirTarget . "openm.dependencies.display.compiled"))
-                echo " - ../lib/openm.dependencies.display.compiled <b>correctly copied to</b> " . $dirTarget . "openm.dependencies.display.compiled <br>";
-        }
-        if (is_file("../lib/version")) {
-            if (copy("../lib/version", $dirTarget . "version"))
-                echo " - ../lib/version <b>correctly copied to</b> " . $dirTarget . "version <br>";
-        }
+        else
+            die("<b>../lib/openm.dependencies not Found</b>");
     }
 
 }

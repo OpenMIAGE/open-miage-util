@@ -86,9 +86,9 @@ class OpenM_Package {
             echo " - " . self::$version . "_" . self::$count . " <b>correctly created</b><br>";
         else
             die(self::$version . " not correctly created");
-        $target_file_name = self::$version . "_" . self::$count . "/" . self::$version . "_" . self::$count . ".zip";
+        $target_file_name = self::$version . "_" . self::$count . "/" . self::$version . ".zip";
         OpenM_Zip::zip(self::$temp, $target_file_name);
-        echo " - " . self::$temp . "_" . self::$count . " <b>correctly ziped to</b> $target_file_name<br>";
+        echo " - " . self::$temp . " <b>correctly ziped to</b> $target_file_name<br>";
         OpenM_Dir::rm(self::$temp);
         echo " - " . self::$temp . " <b>correctly removed</b><br>";
         file_put_contents("build.count", self::$count + 1);
@@ -101,8 +101,8 @@ class OpenM_Package {
         $dependencies = new OpenM_Dependencies($lib_path);
         $dependencies->addInClassPath(OpenM_Dependencies::RUN);
         $dependencies->addInClassPath(OpenM_Dependencies::DISPLAY);
-        $target_file_name = self::$version . "_" . self::$count . "/" . self::$version . "_" . self::$count . ".zip";
-        $target_full_file_name = self::$version . "_" . self::$count . "/" . self::$version . "_" . self::$count . "_full.zip";
+        $target_file_name = self::$version . "_" . self::$count . "/" . self::$version . ".zip";
+        $target_full_file_name = self::$version . "_" . self::$count . "/" . self::$version . "_full.zip";
         $zip = new ZipArchive();
         $res = $zip->open($target_file_name);
         if ($res === TRUE) {
@@ -154,6 +154,21 @@ class OpenM_Package {
         echo " - " . self::$temp . " <b>correctly ziped to</b> $target_full_file_name<br>";
         OpenM_Dir::rm(self::$temp);
         echo " - " . self::$temp . " <b>correctly removed</b><br>";
+
+        $dirTarget = self::$version . "_" . self::$count . "/";
+
+        if (is_file("../lib/openm.dependencies.run.compiled")) {
+            if (copy("../lib/openm.dependencies.run.compiled", $dirTarget . "openm.dependencies.run.compiled"))
+                echo " - ../lib/openm.dependencies.run.compiled <b>correctly copied to</b> " . $dirTarget . "openm.dependencies.run.compiled <br>";
+        }
+        if (is_file("../lib/openm.dependencies.display.compiled")) {
+            if (copy("../lib/openm.dependencies.display.compiled", $dirTarget . "openm.dependencies.display.compiled"))
+                echo " - ../lib/openm.dependencies.display.compiled <b>correctly copied to</b> " . $dirTarget . "openm.dependencies.display.compiled <br>";
+        }
+        if (is_file("../lib/version")) {
+            if (copy("../lib/version", $dirTarget . "version"))
+                echo " - ../lib/version <b>correctly copied to</b> " . $dirTarget . "version <br>";
+        }
     }
 
 }

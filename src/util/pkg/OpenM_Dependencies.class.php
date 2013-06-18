@@ -167,7 +167,7 @@ class OpenM_Dependencies {
                     $dependencies_name->put($name, $dependency);
                     $this->_explore($remote_dir, $dependencies, $dependencies_versions, $dependencies_name);
                 }
-            }  else if ($file_key == self::EXTERNAL . $type) {
+            } else if ($file_key == self::EXTERNAL . $type) {
                 OpenM_Log::debug("$type/read: " . $explore_dir_path_formated . $explored_dependency_file->get($file_key), __CLASS__, __METHOD__, __LINE__);
                 $external_file = Properties::fromFile($explore_dir_path_formated . $explored_dependency_file->get($file_key));
                 $lib_enum = $external_file->getAll()->keys();
@@ -223,7 +223,7 @@ class OpenM_Dependencies {
                 $dependencies->putAll($this->explore($value));
             }
         }
-        OpenM_Log::debug("install with temp: $temp_path for type: $type", __CLASS__, __METHOD__, __LINE__);
+        OpenM_Log::debug("install with temp: $temp_path for type: " . (is_array($type) ? implode(",", $type) : $type), __CLASS__, __METHOD__, __LINE__);
         if ($display)
             echo " - All dependencies <b>successfully explored</b><br>";
         $e = $dependencies->keys();
@@ -254,6 +254,7 @@ class OpenM_Dependencies {
                 OpenM_Log::debug("remove $temp_path_formated/$dependency_name", __CLASS__, __METHOD__, __LINE__);
                 unlink($temp_path_formated . "/" . $dependency_name);
                 OpenM_Log::debug("$temp_path/(isset($dependency_paths[1]) ? $dependency_paths[1] : ''), $dependency_dir", __CLASS__, __METHOD__, __LINE__);
+                set_time_limit(120);
                 OpenM_Dir::cp("$temp_path/" . (isset($dependency_paths[1]) ? $dependency_paths[1] : ""), $dependency_dir);
                 OpenM_Log::debug("$dependency_path successfully copied and unZip in $dependency_dir", __CLASS__, __METHOD__, __LINE__);
                 if ($display)

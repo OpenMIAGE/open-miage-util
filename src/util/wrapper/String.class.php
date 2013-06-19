@@ -330,7 +330,7 @@ class String {
      * @return String
      */
     public static function cast($value) {
-        return (string) $value;
+        return "$value";
     }
 
 }

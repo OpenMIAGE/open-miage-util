@@ -179,7 +179,7 @@ class String {
     public function startsWith($prefix, $toffset = null) {
         if (!self::isString($prefix))
             throw new InvalidArgumentException("le paramètre doit être un String.");
-        if (!is_int($toffset) && $limit !== null)
+        if (!is_int($toffset) && $toffset !== null)
             throw new InvalidArgumentException("le paramètre doit être un int.");
 
         return RegExp::ereg("^$prefix", ($toffset == null) ? $this->string : substr($this->string, $toffset - 1));

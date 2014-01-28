@@ -159,6 +159,9 @@ class OpenM_Dependencies {
                         }
                     }
                     $file_path = $internal_file->get($dependency);
+                    if (substr($file_path, 0, 1) == "*") {
+                        $file_path = str_replace("/", "_", (substr($dependency, 0, strpos($dependency, "/")) . "." . substr($dependency, strpos($dependency, "/")+1))) . substr($file_path, 1);
+                    }
                     $remote_dir = $repository_url . $dependency . "/";
                     OpenM_Log::debug("add $dependency=$remote_dir$file_path::/lib/$dependency", __CLASS__, __METHOD__, __LINE__);
                     $dependencies->put($dependency, $remote_dir . $file_path . "::/lib/" . $dependency);

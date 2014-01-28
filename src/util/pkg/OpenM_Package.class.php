@@ -47,11 +47,7 @@ class OpenM_Package {
         if (!is_file($file))
             throw new OpenM_PackageException("$file not found");
         self::$count = intval(file_get_contents($file));
-        $file = "build.config";
-        if (!is_file($file))
-            throw new OpenM_PackageException("$file not found");
-        $build_config = explode("=", file_get_contents($file));
-        $dir = self::$temp . "lib/" . $build_config[0] . "/$version";
+        $dir = self::$temp . "lib/" . $versionArray[0] . "/" . $versionArray[1] . "/$version";
         if (is_dir(self::$temp)) {
             OpenM_Dir::rm(self::$temp);
             echo " - " . self::$temp . " <b>correctly removed</b><br>";
@@ -81,7 +77,7 @@ class OpenM_Package {
             else
                 die("$path$value is not a file or a directory");
         }
-        self::$version = $build_config[1] . "_$version";
+        self::$version = $versionArray[0] . "." . $versionArray[1] . "_$version";
         if (mkdir(self::$version . "_" . self::$count))
             echo " - " . self::$version . "_" . self::$count . " <b>correctly created</b><br>";
         else

@@ -128,15 +128,14 @@ class OpenM_Package {
                 die("$path$value is not a file or a directory");
         }
 
-        $util = Properties::fromFile("$lib_path/openm.util.dependencies");
-        $e = $util->getAll()->keys();
-        while ($e->hasNext()) {
-            $dir = $e->next();
-            if (is_dir("../../lib/$dir")) {
-                OpenM_Dir::cp("../../lib/$dir", self::$temp . "lib/$dir");
-                echo " - $dir <b>correctly copied to</b> " . self::$temp . "/lib<br>";
-            }
+        echo " - read $lib_path/openm.util.dependencies<br>";
+        $dir = file_get_contents("$lib_path/openm.util.dependencies");
+        if (is_dir("../../lib/$dir")) {
+            OpenM_Dir::cp("../../lib/$dir", self::$temp . "lib/$dir");
+            echo " - $dir <b>correctly copied to</b> " . self::$temp . "/lib<br>";
         }
+        else
+            die("$dir is not a directory");
         $e = $dependencies->explore(OpenM_Dependencies::RUN)->putAll($dependencies->explore(OpenM_Dependencies::DISPLAY))->keys();
         while ($e->hasNext()) {
             $dir = $e->next();

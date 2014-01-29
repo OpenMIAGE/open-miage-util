@@ -89,7 +89,7 @@ class OpenM_Package {
     }
 
     private static function cp($path, $src, $target) {
-        if (self::ignore()->containsKey($src))
+        if (self::isIgnored($src))
             return;
 
         if (is_file($path . $src)) {
@@ -110,7 +110,7 @@ class OpenM_Package {
 
         $dir = dir($path . $src);
         while (false !== $entry = $dir->read()) {
-            if ($entry == '.' || $entry == '..' || self::ignore()->containsKey($src . "/" . $entry)) {
+            if ($entry == '.' || $entry == '..' || self::isIgnored($src . "/" . $entry)) {
                 continue;
             }
             self::cp($path, "$src/$entry", "$target/$entry");
@@ -119,22 +119,47 @@ class OpenM_Package {
         echo " - $src <b>correctly copied to</b> " . self::$temp . "$src<br>";
     }
 
-    private static $ignoreVar = null;
+    private static $ignoreFixed = null;
+    private static $ignoreRegExp = null;
 
     /**
      * @return HashtableString
      */
     private static function ignore() {
-        if (self::$ignoreVar !== null)
-            return self::$ignoreVar;
+        if (self::$ignoreFixed !== null)
+            return self::$ignoreFixed;
         $ignore = explode("\r\n", file_get_contents("build.ignore.file.lst"));
-        $return = new HashtableString();
+        self::$ignoreFixed = new HashtableString();
+        self::$ignoreRegExp = new HashtableString();
         foreach ($ignore as $value) {
-            $return->put($value, $value);
+            if (RegExp::preg("/\*/", $value)) {
+                $pattern = "/^" . str_replace("*", ".*", str_replace(".", "\.", str_replace("/", "\/", $value))) . "$/";
+                self::$ignoreRegExp->put($pattern, $value);
+            }
+            else
+                self::$ignoreFixed->put($value, $value);
             echo " - <b>add</b> $value <b>to ignore list</b><br>";
         }
-        self::$ignoreVar = $return;
-        return $return;
+        return self::$ignoreFixed;
+    }
+
+    /**
+     * @return HashtableString
+     */
+    private static function ignores() {
+        self::ignore();
+        return self::$ignoreRegExp;
+    }
+
+    private static function isIgnored($path) {
+        if (self::ignore()->contains($path))
+            return true;
+        $e = self::ignores()->keys();
+        while ($e->hasNext()) {
+            if (RegExp::preg($e->next(), $path))
+                return true;
+        }
+        return false;
     }
 
     public static function build_full($lib_path = null) {

@@ -60,23 +60,11 @@ class OpenM_Package {
 
         OpenM_Dir::cp("../src", $dir);
         echo " - ../src <b>correctly copied to</b> $dir<br>";
-        $file = "build.file.lst";
-        if (!is_file($file))
-            throw new OpenM_PackageException("$file not found");
-        $file_lst = file_get_contents($file);
-        $file_array = explode("\r\n", $file_lst);
-        $path = "../";
-        foreach ($file_array as $value) {
-            if (is_file($path . $value)) {
-                copy($path . $value, self::$temp . $value);
-                echo " - $value <b>correctly copied to</b> " . self::$temp . "$value<br>";
-            } else if (is_dir($path . $value)) {
-                OpenM_Dir::cp($path . $value, self::$temp . $value);
-                echo " - $value <b>correctly copied to</b> " . self::$temp . "$value<br>";
-            }
-            else
-                die("$path$value is not a file or a directory");
-        }
+
+        $ignore = self::ignore();
+
+        self::copyFromFile("build.file.lst");
+
         self::$version = $versionArray[0] . "." . $versionArray[1] . "_$version";
         if (mkdir(self::$version . "_" . self::$count))
             echo " - " . self::$version . "_" . self::$count . " <b>correctly created</b><br>";
@@ -88,6 +76,65 @@ class OpenM_Package {
         OpenM_Dir::rm(self::$temp);
         echo " - " . self::$temp . " <b>correctly removed</b><br>";
         file_put_contents("build.count", self::$count + 1);
+    }
+
+    private static function copyFromFile($file) {
+        if (!is_file($file))
+            throw new OpenM_PackageException("$file not found");
+        $file_lst = file_get_contents($file);
+        $file_array = explode("\r\n", $file_lst);
+        $path = "../";
+        foreach ($file_array as $value)
+            self::cp($path, $value, self::$temp . $value);
+    }
+
+    private static function cp($path, $src, $target) {
+        if (self::ignore()->containsKey($src))
+            return;
+
+        if (is_file($path . $src)) {
+            if (copy($path . $src, $target)) {
+                echo " - $src <b>correctly copied to</b> " . self::$temp . "$src<br>";
+                return;
+            }
+            else
+                die("$path$src is not a file or a directory");
+        }
+
+        if (!is_dir($path . $src))
+            die("$path$src is not a file or a directory");
+
+        if (!is_dir($target)) {
+            mkdir($target, 0777, true);
+        }
+
+        $dir = dir($path . $src);
+        while (false !== $entry = $dir->read()) {
+            if ($entry == '.' || $entry == '..' || self::ignore()->containsKey($src . "/" . $entry)) {
+                continue;
+            }
+            self::cp($path, "$src/$entry", "$target/$entry");
+        }
+        $dir->close();
+        echo " - $src <b>correctly copied to</b> " . self::$temp . "$src<br>";
+    }
+
+    private static $ignoreVar = null;
+
+    /**
+     * @return HashtableString
+     */
+    private static function ignore() {
+        if (self::$ignoreVar !== null)
+            return self::$ignoreVar;
+        $ignore = explode("\r\n", file_get_contents("build.ignore.file.lst"));
+        $return = new HashtableString();
+        foreach ($ignore as $value) {
+            $return->put($value, $value);
+            echo " - <b>add</b> $value <b>to ignore list</b><br>";
+        }
+        self::$ignoreVar = $return;
+        return $return;
     }
 
     public static function build_full($lib_path = null) {
@@ -110,23 +157,7 @@ class OpenM_Package {
         else
             die('<h1>error occurs</h1>');
 
-        $file = "build.full.file.lst";
-        if (!is_file($file))
-            throw new OpenM_PackageException("$file not found");
-        $file_lst = file_get_contents($file);
-        $file_array = explode("\r\n", $file_lst);
-        $path = "../";
-        foreach ($file_array as $value) {
-            if (is_file($path . $value)) {
-                copy($path . $value, self::$temp . $value);
-                echo " - $value <b>correctly copied to</b> " . self::$temp . "$value<br>";
-            } else if (is_dir($path . $value)) {
-                OpenM_Dir::cp($path . $value, self::$temp . $value);
-                echo " - $value <b>correctly copied to</b> " . self::$temp . "$value<br>";
-            }
-            else
-                die("$path$value is not a file or a directory");
-        }
+        self::copyFromFile("build.full.file.lst");
 
         echo " - read $lib_path/openm.util.dependencies<br>";
         $dir = file_get_contents("$lib_path/openm.util.dependencies");

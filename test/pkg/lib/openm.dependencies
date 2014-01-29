@@ -1,0 +1,6 @@
+internal.run=openm.int.dependencies
+#external.run=openm.ext.dependencies
+#internal.test=openm.int.test.dependencies
+#external.test=openm.ext.test.dependencies
+#internal.display=openm.int.display.dependencies
+external.display=openm.ext.display.dependencies

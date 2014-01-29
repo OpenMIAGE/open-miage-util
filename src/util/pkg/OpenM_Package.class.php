@@ -136,12 +136,36 @@ class OpenM_Package {
         }
         else
             die("$dir is not a directory");
+
         $e = $dependencies->explore(OpenM_Dependencies::RUN)->putAll($dependencies->explore(OpenM_Dependencies::DISPLAY))->keys();
         while ($e->hasNext()) {
             $dir = $e->next();
             if (is_dir("../../lib/$dir")) {
                 OpenM_Dir::cp("../../lib/$dir", self::$temp . "lib/$dir");
-                echo " - $dir <b>correctly copied to</b> " . self::$temp . "/lib<br>";
+                echo " - $dir <b>correctly copied to</b> " . self::$temp . "lib<br>";
+            }
+        }
+        $d = $dependencies->explore(OpenM_Dependencies::RUN);
+        $f = $d->keys();
+        while ($f->hasNext()) {
+            $dir = $f->next();
+            if (RegExp::ereg("^OpenM", $dir)) {
+                $value = $d->get($dir);
+                $zip = explode("::", $value);
+                if (copy($zip[0], self::$temp . "temp-bd.zip")) {
+                    if (OpenM_Zip::unZip(self::$temp . "temp-bd.zip", self::$temp . "temp-bd")) {
+                        if (is_dir(self::$temp . "temp-bd/bd")) {
+                            OpenM_Dir::cp(self::$temp . "temp-bd/bd", self::$temp . "bd");
+                            echo " - $dir :: /bd <b>correctly copied to</b> " . self::$temp . "bd<br>";
+                        }
+                    }
+                    else
+                        die(self::$temp . "/temp-bd.zip isn't a zip");
+                    unlink(self::$temp . "/temp-bd.zip");
+                    OpenM_Dir::rm(self::$temp . "/temp-bd");
+                }
+                else
+                    die("$zip[0] not found on repository");
             }
         }
 

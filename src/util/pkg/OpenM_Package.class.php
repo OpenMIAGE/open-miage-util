@@ -60,9 +60,7 @@ class OpenM_Package {
 
         OpenM_Dir::cp("../src", $dir);
         echo " - ../src <b>correctly copied to</b> $dir<br>";
-
-        $ignore = self::ignore();
-
+        
         self::copyFromFile("build.file.lst");
 
         self::$version = $versionArray[0] . "." . $versionArray[1] . "_$version";
@@ -79,8 +77,10 @@ class OpenM_Package {
     }
 
     private static function copyFromFile($file) {
-        if (!is_file($file))
-            throw new OpenM_PackageException("$file not found");
+        if (!is_file($file)){
+            echo " - <b>$file not found</b><br>";
+            return;
+        }
         $path = "../";
         self::cp($file, $path, ".", self::$temp);
     }
@@ -126,9 +126,13 @@ class OpenM_Package {
     private static function ignore() {
         if (self::$ignoreFixed !== null)
             return self::$ignoreFixed;
-        $ignore = explode("\r\n", file_get_contents("build.ignore.file.lst"));
         self::$ignoreFixed = new HashtableString();
         self::$ignoreRegExp = new HashtableString();
+        if(!is_file("build.ignore.file.lst")){
+            echo " - <b>build.ignore.file.lst not found</b><br>";
+            return self::$ignoreFixed;
+        }
+        $ignore = explode("\r\n", file_get_contents("build.ignore.file.lst"));
         foreach ($ignore as $value) {
             if (RegExp::preg("/\*/", $value)) {
                 $pattern = "/^\.\/" . str_replace("*", ".*", str_replace(".", "\.", str_replace("/", "\/", $value))) . "$/";
@@ -150,6 +154,12 @@ class OpenM_Package {
     private static function allowed($file) {
         if (self::$allowedFixed !== null)
             return self::$allowedFixed;
+        self::$allowedFixed = new HashtableString();
+        self::$allowedRegExp = new HashtableString();
+        if(!is_file($file)){
+            echo " - <b>$file not found</b><br>";
+            return self::$allowedFixed;
+        }
         $allowed = explode("\r\n", file_get_contents($file));
         self::$allowedFixed = new HashtableString();
         self::$allowedRegExp = new HashtableString();

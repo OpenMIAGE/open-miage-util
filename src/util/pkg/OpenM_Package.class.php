@@ -60,7 +60,7 @@ class OpenM_Package {
 
         OpenM_Dir::cp("../src", $dir);
         echo " - ../src <b>correctly copied to</b> $dir<br>";
-        
+
         self::copyFromFile("build.file.lst");
 
         self::$version = $versionArray[0] . "." . $versionArray[1] . "_$version";
@@ -77,7 +77,7 @@ class OpenM_Package {
     }
 
     private static function copyFromFile($file) {
-        if (!is_file($file)){
+        if (!is_file($file)) {
             echo " - <b>$file not found</b><br>";
             return;
         }
@@ -106,6 +106,12 @@ class OpenM_Package {
 
         if (!is_dir($path . $src))
             die("$path$src is not a file or a directory");
+        if (!is_dir($target) && self::isAllowed($file, $src) && !self::isIgnored($src)) {
+            if (mkdir($target, 0777, true))
+                echo " - $path$src <b>correctly created</b><br>";
+            else
+                die("$path$src not correctly created");
+        }
 
         $dir = dir($path . $src);
         while (false !== $entry = $dir->read()) {
@@ -128,7 +134,7 @@ class OpenM_Package {
             return self::$ignoreFixed;
         self::$ignoreFixed = new HashtableString();
         self::$ignoreRegExp = new HashtableString();
-        if(!is_file("build.ignore.file.lst")){
+        if (!is_file("build.ignore.file.lst")) {
             echo " - <b>build.ignore.file.lst not found</b><br>";
             return self::$ignoreFixed;
         }
@@ -139,7 +145,11 @@ class OpenM_Package {
                 self::$ignoreRegExp->put($pattern, $value);
             }
             else
-                self::$ignoreFixed->put("./".$value, $value);
+                self::$ignoreFixed->put("./" . $value, $value);
+            if (!RegExp::preg("/\/$/", $value)) {
+                $pattern = "/^\.\/" . str_replace("*", ".*", str_replace(".", "\.", str_replace("/", "\/", $value))) . "\/.*$/";
+                self::$ignoreRegExp->put($pattern, $value);
+            }
             echo " - <b>add</b> $value <b>to ignore list</b><br>";
         }
         return self::$ignoreFixed;
@@ -156,7 +166,7 @@ class OpenM_Package {
             return self::$allowedFixed;
         self::$allowedFixed = new HashtableString();
         self::$allowedRegExp = new HashtableString();
-        if(!is_file($file)){
+        if (!is_file($file)) {
             echo " - <b>$file not found</b><br>";
             return self::$allowedFixed;
         }
@@ -170,6 +180,10 @@ class OpenM_Package {
             }
             else
                 self::$allowedFixed->put("./" . $value, $value);
+            if (!RegExp::preg("/\/$/", $value)) {
+                $pattern = "/^\.\/" . str_replace("*", ".*", str_replace(".", "\.", str_replace("/", "\/", $value))) . "\/.*$/";
+                self::$allowedRegExp->put($pattern, $value);
+            }
             echo " - <b>add</b> $value <b>to allowed list</b><br>";
         }
         return self::$allowedFixed;

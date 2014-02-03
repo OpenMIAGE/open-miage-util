@@ -38,8 +38,10 @@ final class OpenM_Log {
     public static function init($logPath, $level = null, $logFileName = null, $max_lengh = null) {
         if (!String::isString($logPath))
             throw new InvalidArgumentException("logDirPath must be a string");
-        if (!is_dir($logPath))
-            throw new InvalidArgumentException("logAbsoluteDirPath dir not found");
+        if (!is_dir($logPath)) {
+            if (!mkdir($logPath, 0700, true))
+                throw new InvalidArgumentException("logAbsoluteDirPath dir not found and couldn't be created");
+        }
         if (is_numeric($level))
             $level = $level . "";
         if (!String::isStringOrNull($level))

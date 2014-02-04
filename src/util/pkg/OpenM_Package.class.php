@@ -61,8 +61,6 @@ class OpenM_Package {
         OpenM_Dir::cp("../src", $dir);
         echo " - ../src <b>correctly copied to</b> $dir<br>";
 
-        $ignore = self::ignore();
-
         self::copyFromFile("build.file.lst");
 
         self::$version = $versionArray[0] . "." . $versionArray[1] . "_$version";
@@ -79,33 +77,40 @@ class OpenM_Package {
     }
 
     private static function copyFromFile($file) {
-        if (!is_file($file))
-            throw new OpenM_PackageException("$file not found");
-        $file_lst = file_get_contents($file);
-        $file_array = explode("\r\n", $file_lst);
+        if (!is_file($file)) {
+            echo " - <b>$file not found</b><br>";
+            return;
+        }
         $path = "../";
-        foreach ($file_array as $value)
-            self::cp($path, $value, self::$temp . $value);
+        self::cp($file, $path, ".", self::$temp);
     }
 
-    private static function cp($path, $src, $target) {
+    private static function cp($file, $path, $src, $target) {
         if (self::isIgnored($src))
             return;
 
         if (is_file($path . $src)) {
-            if (copy($path . $src, $target)) {
-                echo " - $src <b>correctly copied to</b> " . self::$temp . "$src<br>";
-                return;
+            if (self::isAllowed($file, $src)) {
+                if (!is_dir(dirname($target)))
+                    mkdir(dirname($target), 0777, true);
+                if (copy($path . $src, $target)) {
+                    echo " - $src <b>correctly copied to</b> " . self::$temp . "$src<br>";
+                    return;
+                }
+                else
+                    die("$path$src is not a file or a directory");
             }
             else
-                die("$path$src is not a file or a directory");
+                return;
         }
 
         if (!is_dir($path . $src))
             die("$path$src is not a file or a directory");
-
-        if (!is_dir($target)) {
-            mkdir($target, 0777, true);
+        if (!is_dir($target) && self::isAllowed($file, $src) && !self::isIgnored($src)) {
+            if (mkdir($target, 0777, true))
+                echo " - $path$src <b>correctly created</b><br>";
+            else
+                die("$path$src not correctly created");
         }
 
         $dir = dir($path . $src);
@@ -113,10 +118,9 @@ class OpenM_Package {
             if ($entry == '.' || $entry == '..' || self::isIgnored($src . "/" . $entry)) {
                 continue;
             }
-            self::cp($path, "$src/$entry", "$target/$entry");
+            self::cp($file, $path, "$src/$entry", "$target/$entry");
         }
         $dir->close();
-        echo " - $src <b>correctly copied to</b> " . self::$temp . "$src<br>";
     }
 
     private static $ignoreFixed = null;
@@ -128,19 +132,61 @@ class OpenM_Package {
     private static function ignore() {
         if (self::$ignoreFixed !== null)
             return self::$ignoreFixed;
-        $ignore = explode("\r\n", file_get_contents("build.ignore.file.lst"));
         self::$ignoreFixed = new HashtableString();
         self::$ignoreRegExp = new HashtableString();
+        if (!is_file("build.ignore.file.lst")) {
+            echo " - <b>build.ignore.file.lst not found</b><br>";
+            return self::$ignoreFixed;
+        }
+        $ignore = explode("\r\n", file_get_contents("build.ignore.file.lst"));
         foreach ($ignore as $value) {
             if (RegExp::preg("/\*/", $value)) {
-                $pattern = "/^" . str_replace("*", ".*", str_replace(".", "\.", str_replace("/", "\/", $value))) . "$/";
+                $pattern = "/^\.\/" . str_replace("*", ".*", str_replace(".", "\.", str_replace("/", "\/", $value))) . "$/";
                 self::$ignoreRegExp->put($pattern, $value);
             }
             else
-                self::$ignoreFixed->put($value, $value);
+                self::$ignoreFixed->put("./" . $value, $value);
+            if (!RegExp::preg("/\/$/", $value)) {
+                $pattern = "/^\.\/" . str_replace("*", ".*", str_replace(".", "\.", str_replace("/", "\/", $value))) . "\/.*$/";
+                self::$ignoreRegExp->put($pattern, $value);
+            }
             echo " - <b>add</b> $value <b>to ignore list</b><br>";
         }
         return self::$ignoreFixed;
+    }
+
+    private static $allowedFixed = null;
+    private static $allowedRegExp = null;
+
+    /**
+     * @return HashtableString
+     */
+    private static function allowed($file) {
+        if (self::$allowedFixed !== null)
+            return self::$allowedFixed;
+        self::$allowedFixed = new HashtableString();
+        self::$allowedRegExp = new HashtableString();
+        if (!is_file($file)) {
+            echo " - <b>$file not found</b><br>";
+            return self::$allowedFixed;
+        }
+        $allowed = explode("\r\n", file_get_contents($file));
+        self::$allowedFixed = new HashtableString();
+        self::$allowedRegExp = new HashtableString();
+        foreach ($allowed as $value) {
+            if (RegExp::preg("/\*/", $value)) {
+                $pattern = "/^\.\/" . str_replace("*", ".*", str_replace(".", "\.", str_replace("/", "\/", $value))) . "$/";
+                self::$allowedRegExp->put($pattern, $value);
+            }
+            else
+                self::$allowedFixed->put("./" . $value, $value);
+            if (!RegExp::preg("/\/$/", $value)) {
+                $pattern = "/^\.\/" . str_replace("*", ".*", str_replace(".", "\.", str_replace("/", "\/", $value))) . "\/.*$/";
+                self::$allowedRegExp->put($pattern, $value);
+            }
+            echo " - <b>add</b> $value <b>to allowed list</b><br>";
+        }
+        return self::$allowedFixed;
     }
 
     /**
@@ -151,13 +197,42 @@ class OpenM_Package {
         return self::$ignoreRegExp;
     }
 
+    /**
+     * @return HashtableString
+     */
+    private static function alloweds($file) {
+        self::allowed($file);
+        return self::$allowedRegExp;
+    }
+
     private static function isIgnored($path) {
-        if (self::ignore()->contains($path))
+        if (self::ignore()->containsKey($path)) {
+            echo " - $path <b>is ignored</b><br>";
             return true;
+        }
         $e = self::ignores()->keys();
         while ($e->hasNext()) {
-            if (RegExp::preg($e->next(), $path))
+            $p = $e->next();
+            if (RegExp::preg($p, $path)) {
+                echo " - $path <b>is ignore by</b> " . self::ignores()->get($p) . "<br>";
                 return true;
+            }
+        }
+        return false;
+    }
+
+    private static function isAllowed($file, $path) {
+        if (self::allowed($file)->containsKey($path)) {
+            echo " - $path <b>is allowed</b><br>";
+            return true;
+        }
+        $e = self::alloweds($file)->keys();
+        while ($e->hasNext()) {
+            $p = $e->next();
+            if (RegExp::preg($p, $path)) {
+                echo " - $path <b>is allowed by</b> " . self::alloweds($file)->get($p) . "<br>";
+                return true;
+            }
         }
         return false;
     }

@@ -76,6 +76,26 @@ class OpenM_FileLoader {
                 header('Content-type: image/tiff');
                 $image = true;
                 break;
+            case "svg":
+                header('Content-type: image/svg+xml');
+                $image = true;
+                break;
+            case "eot":
+                header('Content-type: application/vnd.ms-fontobject');
+                $image = true;
+                break;
+            case "ttf":
+                header('Content-type: font/ttf');
+                $image = true;
+                break;
+            case "otf":
+                header('Content-type: font/opentype');
+                $image = true;
+                break;
+            case "woff":
+                header('Content-type: application/font-woff');
+                $image = true;
+                break;
             default:
                 die("Forbidden file extension $ext");
                 break;

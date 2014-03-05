@@ -155,6 +155,7 @@ class OpenM_Package {
         return self::$ignoreFixed;
     }
 
+    private static $fileAllowed = null;
     private static $allowedFixed = null;
     private static $allowedRegExp = null;
 
@@ -162,8 +163,9 @@ class OpenM_Package {
      * @return HashtableString
      */
     private static function allowed($file) {
-        if (self::$allowedFixed !== null)
+        if (self::$allowedFixed !== null && self::$fileAllowed == $file)
             return self::$allowedFixed;
+        self::$fileAllowed = $file;
         self::$allowedFixed = new HashtableString();
         self::$allowedRegExp = new HashtableString();
         if (!is_file($file)) {
